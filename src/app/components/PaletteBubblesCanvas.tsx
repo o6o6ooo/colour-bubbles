@@ -259,8 +259,8 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       const selectedId = selectedIdRef.current;
       const bubbles = bubblesRef.current;
       const isMobile = cw < 640;
-      const base = isMobile ? 22 : 40;   // ← 通常時
-      const hover = isMobile ? 32 : 55;  // ← hover時
+      const base = isMobile ? 26 : 40;   // ← 通常時
+      const hover = isMobile ? 36 : 55;  // ← hover時
       const selectedGroup = selectedId
         ? bubbles.find((bb) => bb.id === selectedId)?.group ?? null
         : null;
@@ -272,7 +272,8 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         if (b.pulse < 0.001) b.pulse = 0;
 
         if (selectedId && b.id === selectedId) {
-            const base = 92;
+            const isMobile = window.innerWidth < 640;
+            const base = isMobile ? 82 : 92;
             const squish = 10 * b.pulse; // ← 強さ調整（8〜12おすすめ）
             b.rTarget = base - squish;   // ← ここが“ぷにっ”
             continue;
