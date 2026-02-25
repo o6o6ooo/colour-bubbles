@@ -56,6 +56,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
   // ikea-bubblesと同じ：stateで持たずrefで持つ（effect再実行を避ける）
   const mouseRef = useRef({ x: -9999, y: -9999 });
+  const darkRef = useRef(false);
   const selectedIdRef = useRef<string | null>(null);
   const bubblesRef = useRef<Bubble[]>([]);
 
@@ -73,6 +74,17 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
     // alpha:false で地味に安定（ikea-bubbles踏襲）
     const ctx = canvas.getContext("2d", { alpha: false });
+
+    // システムダークモード監視
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    darkRef.current = mql.matches;
+
+    const handleSchemeChange = (e: MediaQueryListEvent) => {
+      darkRef.current = e.matches;
+    };
+
+    mql.addEventListener("change", handleSchemeChange);
+
     if (!ctx) return;
 
     let rafId = 0;
@@ -249,7 +261,8 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       applyRepulsion(cw, ch);
 
       // background: 白（枠なし）
-      ctx.fillStyle = "#FFFFFF";
+      const isDark = darkRef.current;
+      ctx.fillStyle = isDark ? "#0E1116" : "#FFFFFF";
       ctx.fillRect(0, 0, cw, ch);
 
       // copy hit reset（選択bubble描画の時だけ再セットされる）
@@ -376,6 +389,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
     return () => {
       cancelAnimationFrame(rafId);
+      mql.removeEventListener("change", handleSchemeChange);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("click", onClick);
       window.removeEventListener("keydown", onKeyDown);
