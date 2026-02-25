@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { PaletteColor } from "@/data/palette";
 
 type Bubble = {
@@ -12,413 +12,23 @@ type Bubble = {
   vx: number;
   vy: number;
   r: number;
+  rTarget: number;
 };
 
-function clamp(v: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, v));
-}
+type Rect = { x: number; y: number; w: number; h: number };
 
 function normHex(hex: string) {
   const h = hex.trim();
-  return h.startsWith("#") ? h : `#${h}`;
+  return h.startsWith("#") ? h.toUpperCase() : `#${h.toUpperCase()}`;
 }
 
 function isLight(hex: string) {
-  // quick luminance check for text color
   const h = normHex(hex).slice(1);
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
   const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  return lum > 0.72;
-}
-
-export default function PaletteBubblesCanvas({
-  colors,
-}: {
-  colors: PaletteColor[];
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  const [selected, setSelected] = useState<PaletteColor | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  // Pointer state
-  const pointerRef = useRef({
-    x: 0,
-    y: 0,
-    inside: false,
-    down: false,
-  });
-
-  // internal sim state
-  const bubblesRef = useRef<Bubble[]>([]);
-  const hoverIdRef = useRef<string | null>(null);
-
-  const palette = useMemo(() => {
-    // normalize hex upfront
-    return colors.map((c) => ({ ...c, hex: normHex(c.hex) }));
-  }, [colors]);
-
-  // create / reset bubbles when palette changes or on first mount
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-
-    const resize = () => {
-      const parent = canvas.parentElement;
-      if (!parent) return;
-
-      const rect = parent.getBoundingClientRect();
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-
-      // Re-seed bubbles
-      const w = canvas.width;
-      const h = canvas.height;
-
-      const baseR = clamp(Math.min(w, h) * 0.045, 18 * dpr, 42 * dpr);
-      const spread = Math.min(w, h) * 0.18;
-
-      bubblesRef.current = palette.map((c, idx) => {
-        const angle = (idx / Math.max(1, palette.length)) * Math.PI * 2;
-        const cx = w * 0.5 + Math.cos(angle) * spread;
-        const cy = h * 0.45 + Math.sin(angle) * spread;
-
-        // vary radius a bit
-        const r = baseR * (0.85 + (idx % 7) * 0.04);
-
-        return {
-          id: `${c.group}-${c.hex}-${idx}`,
-          hex: c.hex,
-          group: c.group,
-          x: cx + (Math.random() - 0.5) * spread * 0.35,
-          y: cy + (Math.random() - 0.5) * spread * 0.35,
-          vx: (Math.random() - 0.5) * 0.6 * dpr,
-          vy: (Math.random() - 0.5) * 0.6 * dpr,
-          r,
-        };
-      });
-    };
-
-    resize();
-
-    const ro = new ResizeObserver(() => resize());
-    ro.observe(canvas.parentElement!);
-
-    return () => ro.disconnect();
-  }, [palette]);
-
-  // main loop
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-    const getPointer = () => pointerRef.current;
-
-    const step = () => {
-      const w = canvas.width;
-      const h = canvas.height;
-
-      const bubbles = bubblesRef.current;
-
-      // --- find hover bubble
-      const p = getPointer();
-      let hoverId: string | null = null;
-
-      if (p.inside) {
-        // brute force is ok for small N
-        for (let i = bubbles.length - 1; i >= 0; i--) {
-          const b = bubbles[i];
-          const dx = p.x - b.x;
-          const dy = p.y - b.y;
-          if (dx * dx + dy * dy <= b.r * b.r) {
-            hoverId = b.id;
-            break;
-          }
-        }
-      }
-      hoverIdRef.current = hoverId;
-
-      // --- physics
-      const centerX = w * 0.5;
-      const centerY = h * 0.5;
-
-      const damping = 0.985;
-      const repulseStrength = 0.75; // bubble-to-bubble
-      const boundaryPush = 0.8;
-      const hoverBoost = 1.12; // radius multiplier on hover (visual + collision)
-      const settleToCenter = 0.0008; // gentle gravity to center
-
-      // pairwise collision resolution
-      for (let i = 0; i < bubbles.length; i++) {
-        const a = bubbles[i];
-        for (let j = i + 1; j < bubbles.length; j++) {
-          const b = bubbles[j];
-
-          const ar = a.id === hoverId ? a.r * hoverBoost : a.r;
-          const br = b.id === hoverId ? b.r * hoverBoost : b.r;
-
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const dist = Math.hypot(dx, dy) || 0.0001;
-          const minDist = ar + br;
-
-          if (dist < minDist) {
-            const overlap = minDist - dist;
-            const nx = dx / dist;
-            const ny = dy / dist;
-
-            // push apart
-            const push = overlap * repulseStrength;
-            a.x -= nx * push * 0.5;
-            a.y -= ny * push * 0.5;
-            b.x += nx * push * 0.5;
-            b.y += ny * push * 0.5;
-
-            // add a little velocity
-            a.vx -= nx * push * 0.02;
-            a.vy -= ny * push * 0.02;
-            b.vx += nx * push * 0.02;
-            b.vy += ny * push * 0.02;
-          }
-        }
-      }
-
-      // integrate + boundary + gentle centering
-      for (const b of bubbles) {
-        // mild drift to center so they look "composed"
-        b.vx += (centerX - b.x) * settleToCenter;
-        b.vy += (centerY - b.y) * settleToCenter;
-
-        b.x += b.vx;
-        b.y += b.vy;
-
-        b.vx *= damping;
-        b.vy *= damping;
-
-        const r = b.id === hoverId ? b.r * hoverBoost : b.r;
-
-        // boundary push
-        if (b.x - r < 0) {
-          b.x = r;
-          b.vx = Math.abs(b.vx) * boundaryPush;
-        } else if (b.x + r > w) {
-          b.x = w - r;
-          b.vx = -Math.abs(b.vx) * boundaryPush;
-        }
-
-        if (b.y - r < 0) {
-          b.y = r;
-          b.vy = Math.abs(b.vy) * boundaryPush;
-        } else if (b.y + r > h) {
-          b.y = h - r;
-          b.vy = -Math.abs(b.vy) * boundaryPush;
-        }
-      }
-
-      // --- draw
-      ctx.clearRect(0, 0, w, h);
-
-      // background is white (canvas defaults transparent; container is white)
-      // draw bubbles
-      for (const b of bubbles) {
-        const hover = b.id === hoverId;
-        const r = hover ? b.r * hoverBoost : b.r;
-
-        // subtle shadow
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
-        ctx.closePath();
-
-        ctx.shadowBlur = 18 * dpr;
-        ctx.shadowColor = "rgba(0,0,0,0.06)";
-        ctx.fillStyle = b.hex;
-        ctx.fill();
-
-        // thin border to help light colors
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 1.25 * dpr;
-        ctx.strokeStyle = "rgba(0,0,0,0.08)";
-        ctx.stroke();
-
-        // tiny label on hover (optional, minimal)
-        if (hover) {
-          const text = b.hex.toUpperCase();
-          ctx.font = `${12 * dpr}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto`;
-          ctx.fillStyle = isLight(b.hex) ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.75)";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(text, b.x, b.y);
-        }
-
-        ctx.restore();
-      }
-
-      // --- selected panel (Canvas内表示)
-      if (selected) {
-        const pad = 18 * dpr;
-        const panelW = Math.min(360 * dpr, w - pad * 2);
-        const panelH = 140 * dpr;
-
-        const x = pad;
-        const y = h - panelH - pad;
-
-        // panel bg
-        ctx.save();
-        ctx.shadowBlur = 22 * dpr;
-        ctx.shadowColor = "rgba(0,0,0,0.10)";
-        ctx.fillStyle = "rgba(255,255,255,0.92)";
-        roundRect(ctx, x, y, panelW, panelH, 18 * dpr);
-        ctx.fill();
-
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = "rgba(0,0,0,0.08)";
-        ctx.lineWidth = 1 * dpr;
-        roundRect(ctx, x, y, panelW, panelH, 18 * dpr);
-        ctx.stroke();
-
-        // swatch
-        const sw = 44 * dpr;
-        const sx = x + 18 * dpr;
-        const sy = y + 18 * dpr;
-        ctx.fillStyle = selected.hex.toUpperCase();
-        ctx.beginPath();
-        ctx.arc(sx + sw / 2, sy + sw / 2, sw / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,0.10)";
-        ctx.stroke();
-
-        // text
-        const tx = sx + sw + 14 * dpr;
-        ctx.fillStyle = "rgba(0,0,0,0.82)";
-        ctx.font = `${14 * dpr}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto`;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.fillText(selected.group, tx, sy);
-
-        ctx.font = `600 ${18 * dpr}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto`;
-        ctx.fillText(selected.hex.toUpperCase(), tx, sy + 26 * dpr);
-
-        // "Copy" button (visual only; actual click handled below via DOM overlay button)
-        // We draw the button but use a real HTML button positioned over it for accessibility.
-        ctx.restore();
-
-        // We position an HTML overlay button via state below (see JSX)
-      }
-
-      rafRef.current = requestAnimationFrame(step);
-    };
-
-    rafRef.current = requestAnimationFrame(step);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [selected]);
-
-  // Pointer handlers
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-
-    const toCanvasXY = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * dpr;
-      const y = (e.clientY - rect.top) * dpr;
-      return { x, y };
-    };
-
-    const onMove = (e: PointerEvent) => {
-      const { x, y } = toCanvasXY(e);
-      pointerRef.current.x = x;
-      pointerRef.current.y = y;
-      pointerRef.current.inside = true;
-    };
-
-    const onLeave = () => {
-      pointerRef.current.inside = false;
-    };
-
-    const onDown = () => {
-      pointerRef.current.down = true;
-    };
-
-    const onUp = (e: PointerEvent) => {
-      pointerRef.current.down = false;
-
-      // click select
-      const { x, y } = toCanvasXY(e);
-      const bubbles = bubblesRef.current;
-
-      for (let i = bubbles.length - 1; i >= 0; i--) {
-        const b = bubbles[i];
-        const dx = x - b.x;
-        const dy = y - b.y;
-        if (dx * dx + dy * dy <= b.r * b.r * 1.2) {
-          setSelected({ hex: b.hex, group: b.group });
-          setCopied(false);
-          return;
-        }
-      }
-    };
-
-    canvas.addEventListener("pointermove", onMove);
-    canvas.addEventListener("pointerleave", onLeave);
-    canvas.addEventListener("pointerdown", onDown);
-    canvas.addEventListener("pointerup", onUp);
-
-    return () => {
-      canvas.removeEventListener("pointermove", onMove);
-      canvas.removeEventListener("pointerleave", onLeave);
-      canvas.removeEventListener("pointerdown", onDown);
-      canvas.removeEventListener("pointerup", onUp);
-    };
-  }, []);
-
-  const copyHex = async () => {
-    if (!selected) return;
-    try {
-      await navigator.clipboard.writeText(selected.hex.toUpperCase());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // ignore; could show fallback UI if you want
-    }
-  };
-
-  return (
-    <div className="relative w-full h-[78vh] min-h-[520px] rounded-3xl bg-white border border-black/10 overflow-hidden">
-      <canvas ref={canvasRef} className="block w-full h-full" />
-
-      {/* HTML overlay for the “Copy” button (accessible) */}
-      {selected && (
-        <div className="absolute left-6 bottom-6">
-          <button
-            onClick={copyHex}
-            className="px-4 py-2 rounded-full border border-black/10 bg-white/90 backdrop-blur text-sm font-medium shadow-sm hover:shadow transition"
-          >
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-      )}
-
-      {/* small hint */}
-      <div className="absolute right-5 top-5 text-xs text-black/45 select-none">
-        Hover to peek · Click to pin & copy
-      </div>
-    </div>
-  );
+  return lum > 0.7;
 }
 
 function roundRect(
@@ -437,4 +47,329 @@ function roundRect(
   ctx.arcTo(x, y + h, x, y, radius);
   ctx.arcTo(x, y, x + w, y, radius);
   ctx.closePath();
+}
+
+export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[] }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // ikea-bubblesと同じ：stateで持たずrefで持つ（effect再実行を避ける）
+  const mouseRef = useRef({ x: -9999, y: -9999 });
+  const selectedIdRef = useRef<string | null>(null);
+  const bubblesRef = useRef<Bubble[]>([]);
+
+  // selected時だけCopyピルの当たり判定を保存
+  const copyHitRef = useRef<{ bubbleId: string; rect: Rect } | null>(null);
+
+  const palette = useMemo(
+    () => colors.map((c) => ({ ...c, hex: normHex(c.hex) })),
+    [colors]
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // alpha:false で地味に安定（ikea-bubbles踏襲）
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+
+    let rafId = 0;
+
+    const setupCanvasSize = () => {
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+
+      // ✅ 物理はCSSピクセル基準で描く（dprはtransformで吸収）
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const initBubbles = () => {
+      const cw = window.innerWidth;
+      const ch = window.innerHeight;
+
+      const cx = cw / 2;
+      const cy = ch / 2;
+
+      const spread = Math.min(cw, ch) * 0.18;
+      const baseR = 40;
+
+      const bubbles: Bubble[] = palette.map((c, idx) => ({
+        id: `${c.group}-${c.hex}-${idx}`,
+        hex: c.hex,
+        group: c.group,
+        x: cx + (Math.random() - 0.5) * spread * 2,
+        y: cy + (Math.random() - 0.5) * spread * 2,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        r: baseR,
+        rTarget: baseR,
+      }));
+
+      bubblesRef.current = bubbles;
+    };
+
+    const applyRepulsion = (cw: number, ch: number) => {
+      // ikea-bubblesと同じパラメータ
+      const padding = 2;
+      const strength = 0.35;
+
+      const bubbles = bubblesRef.current;
+
+      for (let i = 0; i < bubbles.length; i++) {
+        const a = bubbles[i];
+
+        for (let j = i + 1; j < bubbles.length; j++) {
+          const b = bubbles[j];
+
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy) || 0.0001;
+
+          const minDist = a.rTarget + b.rTarget + padding;
+
+          if (dist < minDist) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+
+            const overlap = minDist - dist;
+
+            const push = overlap * 0.5 * strength;
+            a.x -= nx * push;
+            a.y -= ny * push;
+            b.x += nx * push;
+            b.y += ny * push;
+
+            const vpush = overlap * 0.0008 * strength;
+            a.vx -= nx * vpush;
+            a.vy -= ny * vpush;
+            b.vx += nx * vpush;
+            b.vy += ny * vpush;
+          }
+        }
+
+        // clamp
+        a.x = Math.max(a.r, Math.min(cw - a.r, a.x));
+        a.y = Math.max(a.r, Math.min(ch - a.r, a.y));
+      }
+    };
+
+    const pickBubbleIdAt = (x: number, y: number) => {
+      const bubbles = [...bubblesRef.current].sort((a, b) => b.r - a.r);
+      for (const b of bubbles) {
+        const dx = x - b.x;
+        const dy = y - b.y;
+        if (Math.hypot(dx, dy) <= b.r) return b.id;
+      }
+      return null;
+    };
+
+    const drawSelectedOverlay = (b: Bubble) => {
+      // うっすら暗幕 + HEX + Copyピル（Canvas内）
+      ctx.save();
+
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      ctx.fillStyle = "rgba(0,0,0,0.24)";
+      ctx.fillRect(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
+
+      const textColor = "rgba(255,255,255,0.95)";
+      ctx.fillStyle = textColor;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      ctx.font = "700 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
+      ctx.fillText(b.hex, b.x, b.y - 10);
+
+      // Copy pill
+      const pillW = 60;
+      const pillH = 22;
+      const px = b.x - pillW / 2;
+      const py = b.y + 10;
+
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      roundRect(ctx, px, py, pillW, pillH, 999);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
+      ctx.fillText("Copy", b.x, py + pillH / 2);
+
+      // hitbox保存
+      copyHitRef.current = {
+        bubbleId: b.id,
+        rect: { x: px, y: py, w: pillW, h: pillH },
+      };
+
+      ctx.restore();
+    };
+
+    const tick = () => {
+      const cw = window.innerWidth;
+      const ch = window.innerHeight;
+
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+
+      const selectedId = selectedIdRef.current;
+      const bubbles = bubblesRef.current;
+
+      // hover/selected のターゲット半径（ikea-bubblesと同じ設計）
+      for (const b of bubbles) {
+        if (selectedId && b.id === selectedId) {
+          b.rTarget = 92; // 選択時ドン
+          continue;
+        }
+
+        const dx = mx - b.x;
+        const dy = my - b.y;
+        const dist = Math.hypot(dx, dy);
+
+        b.rTarget = dist < b.r ? 55 : 40;
+      }
+
+      applyRepulsion(cw, ch);
+
+      // background: 白（枠なし）
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, cw, ch);
+
+      // copy hit reset（選択bubble描画の時だけ再セットされる）
+      copyHitRef.current = null;
+
+      for (const b of bubbles) {
+        const lerp = selectedId && b.id === selectedId ? 0.16 : 0.12;
+        b.r += (b.rTarget - b.r) * lerp;
+
+        b.x += b.vx;
+        b.y += b.vy;
+
+        b.vx *= 0.995;
+        b.vy *= 0.995;
+
+        // bounce（ikea-bubbles踏襲）
+        if (b.x < b.r) {
+          b.x = b.r;
+          b.vx *= -1;
+        } else if (b.x > cw - b.r) {
+          b.x = cw - b.r;
+          b.vx *= -1;
+        }
+
+        if (b.y < b.r) {
+          b.y = b.r;
+          b.vy *= -1;
+        } else if (b.y > ch - b.r) {
+          b.y = ch - b.r;
+          b.vy *= -1;
+        }
+
+        // shadow only（ふわっ）
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.22)";
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 8;
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = b.hex;
+        ctx.fill();
+
+        // 薄色救済だけ極薄stroke（必要最低限）
+        if (isLight(b.hex)) {
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = "rgba(0,0,0,0.06)";
+          ctx.stroke();
+        }
+
+        ctx.restore();
+
+        // ✅ 選択中だけオーバーレイ + Copy
+        if (selectedId && b.id === selectedId) {
+          drawSelectedOverlay(b);
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      mouseRef.current.x = e.clientX;
+      mouseRef.current.y = e.clientY;
+    };
+
+    const onClick = async (e: MouseEvent) => {
+      const selectedId = selectedIdRef.current;
+
+      // 先にCopyピル判定（選択中のみ）
+      const hit = copyHitRef.current;
+      if (hit && selectedId && hit.bubbleId === selectedId) {
+        const r = hit.rect;
+        const inside =
+          e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y && e.clientY <= r.y + r.h;
+
+        if (inside) {
+          const b = bubblesRef.current.find((bb) => bb.id === selectedId);
+          if (b) {
+            try {
+              await navigator.clipboard.writeText(b.hex);
+            } catch {
+              // 失敗しても黙っておく（Safari権限など）
+            }
+          }
+          return;
+        }
+      }
+
+      // bubble選択トグル
+      const id = pickBubbleIdAt(e.clientX, e.clientY);
+      if (!id) {
+        selectedIdRef.current = null; // 何もないところクリックで解除
+        return;
+      }
+      selectedIdRef.current = selectedIdRef.current === id ? null : id;
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") selectedIdRef.current = null;
+    };
+
+    const onResize = () => {
+      setupCanvasSize();
+      initBubbles(); // リサイズのときだけ並び直し（ikea-bubblesと同じ）
+    };
+
+    setupCanvasSize();
+    initBubbles();
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("click", onClick);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onResize);
+
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [palette]);
+
+  return <canvas ref={canvasRef} className="block h-screen w-screen" />;
 }
