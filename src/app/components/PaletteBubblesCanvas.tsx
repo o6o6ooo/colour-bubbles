@@ -256,6 +256,9 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
       const selectedId = selectedIdRef.current;
       const bubbles = bubblesRef.current;
+      const selectedGroup = selectedId
+        ? bubbles.find((bb) => bb.id === selectedId)?.group ?? null
+        : null;
 
       // hover/selected のターゲット半径（ikea-bubblesと同じ設計）
       for (const b of bubbles) {
@@ -275,6 +278,9 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         const dist = Math.hypot(dx, dy);
 
         b.rTarget = dist < b.r ? 55 : 40;
+          if (selectedGroup && b.group === selectedGroup) {
+            b.rTarget += 4;
+          }
         }
       applyRepulsion(cw, ch);
 
