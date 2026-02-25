@@ -1,7 +1,8 @@
 export type PaletteColor = {
-  hex: string;       // "A4C8EC" or "#A4C8EC"
-  group: string;     // e.g. "My Helsinki"
+  hex: string;
+  group: string;
   description?: string;     // optional
+  isWhite?: boolean;
 };
 
 export const COLORS: PaletteColor[] = [
@@ -23,12 +24,12 @@ export const COLORS: PaletteColor[] = [
   // --- iOS Colours (example)
   { hex: "#007AFF", group: "iOS Colours" },
   { hex: "#FF3B30", group: "iOS Colours" },
-  { hex: "#E5E5EA", group: "iOS Colours" },
+  { hex: "#E5E5EA", group: "iOS Colours", isWhite: true },
 
   // --- Tricoroll
   { hex: "#C1C8D1", group: "Tricoroll" },
   { hex: "#CE0000", group: "Tricoroll" },
-  { hex: "#F8FBFC", group: "Tricoroll" },
+  { hex: "#F8FBFC", group: "Tricoroll", isWhite: true },
   { hex: "#2A68B2", group: "Tricoroll" },
 
   // --- Swedish
@@ -44,7 +45,7 @@ export const COLORS: PaletteColor[] = [
   { hex: "#296EBF", group: "Christmas wonderland" },
 
   // --- Cream and blue
-  { hex: "#FEF9EF", group: "Cream and blue" },
+  { hex: "#FEF9EF", group: "Cream and blue", isWhite: true },
   { hex: "#2480F2", group: "Cream and blue" },
 
   // --- Light blues
@@ -56,7 +57,7 @@ export const COLORS: PaletteColor[] = [
 
   // --- Dusty blue and nice red
   { hex: "#4F89B7", group: "Dusty blue and nice red" },
-  { hex: "#FEF9EF", group: "Dusty blue and nice red" },
+  { hex: "#FEF9EF", group: "Dusty blue and nice red", isWhite: true },
   { hex: "#E10032", group: "Dusty blue and nice red" },
 
   // --- Social media
@@ -64,7 +65,7 @@ export const COLORS: PaletteColor[] = [
   { hex: "#CE0000", group: "Social media" },
   { hex: "#FCD746", group: "Social media" },
   { hex: "#A4C8EC", group: "Social media" },
-  { hex: "#F2F2F2", group: "Social media" },
+  { hex: "#F2F2F2", group: "Social media", isWhite: true },
 
   // --- Baby Goods
   { hex: "#d2e8eb", group: "Baby Goods" },
@@ -86,7 +87,7 @@ export const COLORS: PaletteColor[] = [
   { hex: "#B2E0ED", group: "Icy blues" },
   { hex: "#CDE8F2", group: "Icy blues" },
   { hex: "#B0E0E6", group: "Icy blues" },
-  { hex: "#e0f7fa", group: "Icy blues" },
+  { hex: "#e0f7fa", group: "Icy blues", isWhite: true },
   { hex: "#A3D5E0", group: "Icy blues" },
   { hex: "#B6D0E2", group: "Icy blues" },
   { hex: "#89CFF0", group: "Icy blues" },
@@ -103,7 +104,7 @@ export const COLORS: PaletteColor[] = [
   // --- Scandi table
   { hex: "#da4a3d", group: "Scandi table" },
   { hex: "#cfe4f5", group: "Scandi table" },
-  { hex: "#f1f1f9", group: "Scandi table" },
+  { hex: "#f1f1f9", group: "Scandi table", isWhite: true },
   { hex: "#a4d1d7", group: "Scandi table" },
   { hex: "#a98470", group: "Scandi table" },
   { hex: "#607cac", group: "Scandi table" },
@@ -121,8 +122,8 @@ export const COLORS: PaletteColor[] = [
   { hex: "#90C3D4", group: "My accent colours" },
 
   // --- iOS simple
-  { hex: "#ffffff", group: "iOS simple", description: "background" },
-  { hex: "#F6F6F6", group: "iOS simple", description: "cards, containers" },
+  { hex: "#ffffff", group: "iOS simple", description: "background", isWhite: true },
+  { hex: "#F6F6F6", group: "iOS simple", description: "cards, containers", isWhite: true },
   { hex: "#E0E0E0", group: "iOS simple", description: "borders" },
   { hex: "#A3A3A3", group: "iOS simple", description: "disabled text" },
   { hex: "#6E6E6E", group: "iOS simple", description: "second text" },
@@ -130,10 +131,10 @@ export const COLORS: PaletteColor[] = [
   { hex: "#007AFF", group: "iOS simple", description: "accent" },
 
   // --- Kuusi light theme
-  { hex: "#ffffff", group: "Kuusi light theme", description: "background" },
+  { hex: "#ffffff", group: "Kuusi light theme", description: "background", isWhite: true },
   { hex: "#2A3140", group: "Kuusi light theme", description: "main text1" },
   { hex: "#0A4A6E", group: "Kuusi light theme", description: "main text2" },
-  { hex: "#f5f5f5", group: "Kuusi light theme", description: "cards, containers" },
+  { hex: "#f5f5f5", group: "Kuusi light theme", description: "cards, containers", isWhite: true },
   { hex: "#A5C3DE", group: "Kuusi light theme", description: "Kuusi light blue" },
   { hex: "#2A68B2", group: "Kuusi light theme", description: "Kuusi blue" },
   { hex: "#5C9BD1", group: "Kuusi light theme", description: "accent" },

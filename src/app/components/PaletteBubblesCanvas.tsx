@@ -7,6 +7,8 @@ type Bubble = {
   id: string;
   hex: string;
   group: string;
+  isWhite?: boolean;
+  pulse: number;
   x: number;
   y: number;
   vx: number;
@@ -102,6 +104,8 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         id: `${c.group}-${c.hex}-${idx}`,
         hex: c.hex,
         group: c.group,
+        isWhite: c.isWhite,
+        pulse: 0,
         x: cx + (Math.random() - 0.5) * spread * 2,
         y: cy + (Math.random() - 0.5) * spread * 2,
         vx: (Math.random() - 0.5) * 0.35,
@@ -169,18 +173,16 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
     };
 
     const drawSelectedOverlay = (b: Bubble) => {
-      // うっすら暗幕 + HEX + Copyピル（Canvas内）
       ctx.save();
-
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
 
-      ctx.fillStyle = "rgba(0,0,0,0.24)";
-      ctx.fillRect(b.x - b.r, b.y - b.r, b.r * 2, b.r * 2);
+      const textColor = b.isWhite ? "#1E3653" : "rgba(255,255,255,0.95)";
+      const pillFill = b.isWhite ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.18)";
+      const pillStroke = b.isWhite ? "rgba(30,54,83,0.22)" : "rgba(255,255,255,0.22)";
 
-      const textColor = "rgba(255,255,255,0.95)";
       ctx.fillStyle = textColor;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -194,15 +196,15 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       const px = b.x - pillW / 2;
       const py = b.y + 10;
 
-      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.fillStyle = pillFill;
       roundRect(ctx, px, py, pillW, pillH, 999);
       ctx.fill();
 
-      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.strokeStyle = pillStroke;
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillStyle = textColor;
       ctx.font = "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
       ctx.fillText("Copy", b.x, py + pillH / 2);
 
@@ -227,9 +229,15 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
       // hover/selected のターゲット半径（ikea-bubblesと同じ設計）
       for (const b of bubbles) {
+        // ✅ pulse減衰（毎フレーム）
+        b.pulse *= 0.84;
+        if (b.pulse < 0.001) b.pulse = 0;
+
         if (selectedId && b.id === selectedId) {
-          b.rTarget = 92; // 選択時ドン
-          continue;
+            const base = 92;
+            const squish = 10 * b.pulse; // ← 強さ調整（8〜12おすすめ）
+            b.rTarget = base - squish;   // ← ここが“ぷにっ”
+            continue;
         }
 
         const dx = mx - b.x;
@@ -237,8 +245,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         const dist = Math.hypot(dx, dy);
 
         b.rTarget = dist < b.r ? 55 : 40;
-      }
-
+        }
       applyRepulsion(cw, ch);
 
       // background: 白（枠なし）
@@ -277,9 +284,13 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
         // shadow only（ふわっ）
         ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.22)";
-        ctx.shadowBlur = 18;
-        ctx.shadowOffsetY = 8;
+        const shadowA = b.isWhite ? 0.14 : 0.22;   // ✅白だけ薄く
+        const shadowBlur = b.isWhite ? 16 : 18;    // ✅白だけ少しだけ弱め
+        const shadowY = b.isWhite ? 7 : 8;
+
+        ctx.shadowColor = `rgba(0,0,0,${shadowA})`;
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowOffsetY = shadowY;
 
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
@@ -324,6 +335,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         if (inside) {
           const b = bubblesRef.current.find((bb) => bb.id === selectedId);
           if (b) {
+            b.pulse = 1; // ✅ クリックでpulse発生
             try {
               await navigator.clipboard.writeText(b.hex);
             } catch {
