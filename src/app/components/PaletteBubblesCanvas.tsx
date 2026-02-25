@@ -258,6 +258,9 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
       const selectedId = selectedIdRef.current;
       const bubbles = bubblesRef.current;
+      const isMobile = cw < 640;
+      const base = isMobile ? 22 : 40;   // ← 通常時
+      const hover = isMobile ? 32 : 55;  // ← hover時
       const selectedGroup = selectedId
         ? bubbles.find((bb) => bb.id === selectedId)?.group ?? null
         : null;
@@ -279,7 +282,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         const dy = my - b.y;
         const dist = Math.hypot(dx, dy);
 
-        b.rTarget = dist < b.r ? 55 : 40;
+        b.rTarget = dist < b.r ? hover : base;
           if (selectedGroup && b.group === selectedGroup) {
             b.rTarget += 4;
           }
