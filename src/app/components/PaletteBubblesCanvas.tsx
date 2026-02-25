@@ -88,6 +88,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
     if (!ctx) return;
 
     let rafId = 0;
+    let groupAnchors: Record<string, { x: number; y: number }> = {};
 
     const setupCanvasSize = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -103,16 +104,30 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
     };
 
     const initBubbles = () => {
+      const groups = [...new Set(palette.map((p) => p.group))];
       const cw = window.innerWidth;
       const ch = window.innerHeight;
-
       const cx = cw / 2;
       const cy = ch / 2;
+      const ring = Math.min(cw, ch) * 0.24;
+
+      groupAnchors = {};
+      groups.forEach((g, i) => {
+        const angle = (i / groups.length) * Math.PI * 2 - Math.PI / 2;
+        groupAnchors[g] = {
+          x: cx + Math.cos(angle) * ring,
+          y: cy + Math.sin(angle) * ring,
+        };
+      });
+
 
       const spread = Math.min(cw, ch) * 0.18;
       const baseR = 40;
+      
+      const bubbles: Bubble[] = palette.map((c, idx) => {
+      const a = groupAnchors[c.group];
 
-      const bubbles: Bubble[] = palette.map((c, idx) => ({
+      return {
         id: `${c.group}-${c.hex}-${idx}`,
         hex: c.hex,
         group: c.group,
@@ -124,7 +139,8 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         vy: (Math.random() - 0.5) * 0.35,
         r: baseR,
         rTarget: baseR,
-      }));
+      };
+    });
 
       bubblesRef.current = bubbles;
     };
@@ -133,6 +149,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       // ikea-bubblesと同じパラメータ
       const padding = 2;
       const strength = 0.35;
+      const sameGroupFactor = 0.8;
 
       const bubbles = bubblesRef.current;
 
@@ -154,13 +171,14 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
             const overlap = minDist - dist;
 
-            const push = overlap * 0.5 * strength;
+            const factor = a.group === b.group ? sameGroupFactor : 1;
+            const push = overlap * 0.5 * strength * factor;
             a.x -= nx * push;
             a.y -= ny * push;
             b.x += nx * push;
             b.y += ny * push;
 
-            const vpush = overlap * 0.0008 * strength;
+            const vpush = overlap * 0.0008 * strength * factor;
             a.vx -= nx * vpush;
             a.vy -= ny * vpush;
             b.vx += nx * vpush;
