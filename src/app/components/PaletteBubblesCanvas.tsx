@@ -123,7 +123,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
       const isMobile = window.innerWidth < 640;
       const spread = Math.min(cw, ch) * (isMobile ? 0.14 : 0.18);
-      const baseR = isMobile ? 30 : 40;
+      const baseR = isMobile ? 20 : 40;
       
       const bubbles: Bubble[] = palette.map((c, idx) => {
       const a = groupAnchors[c.group];
