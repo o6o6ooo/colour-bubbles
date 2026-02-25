@@ -121,8 +121,8 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       });
 
 
-      const spread = Math.min(cw, ch) * 0.18;
       const isMobile = window.innerWidth < 640;
+      const spread = Math.min(cw, ch) * (isMobile ? 0.14 : 0.18);
       const baseR = isMobile ? 30 : 40;
       
       const bubbles: Bubble[] = palette.map((c, idx) => {
@@ -148,7 +148,8 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
     const applyRepulsion = (cw: number, ch: number) => {
       // ikea-bubblesと同じパラメータ
-      const padding = 2;
+      const isMobile = window.innerWidth < 640;
+      const padding = isMobile ? 6 : 2;
       const strength = 0.35;
       const sameGroupFactor = 0.8;
 
