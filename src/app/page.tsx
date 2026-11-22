@@ -17,10 +17,10 @@ export default function Page() {
     >
       <PaletteBubblesCanvas colors={COLORS} />
 
-      <fieldset className="absolute left-2 top-1/2 flex -translate-y-1/2 flex-col">
+      <fieldset className="absolute left-3 top-2 flex flex-col">
         <legend className="sr-only">Background colour</legend>
         {backgroundColours.map((colour) => (
-          <label key={colour} title={colour} className="flex size-11 cursor-pointer items-center gap-1.5 pl-1">
+          <label key={colour} title={colour} className="flex h-12 w-14 cursor-pointer items-center gap-2">
             <input
               type="radio"
               name="background-colour"
@@ -32,7 +32,7 @@ export default function Page() {
             />
             <span
               style={{ backgroundColor: colour }}
-              className="size-6 rounded-full border border-current/35 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
+              className="size-9 rounded-full border border-current/35 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
             />
             {background === colour && <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />}
           </label>
