@@ -6,7 +6,6 @@ import type { PaletteColor } from "@/data/palette";
 type Bubble = {
   id: string;
   hex: string;
-  group: string;
   isWhite?: boolean;
   pulse: number;
   x: number;
@@ -88,7 +87,6 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
     if (!ctx) return;
 
     let rafId = 0;
-    let groupAnchors: Record<string, { x: number; y: number }> = {};
 
     const setupCanvasSize = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -104,34 +102,17 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
     };
 
     const initBubbles = () => {
-      const groups = [...new Set(palette.map((p) => p.group))];
       const cw = window.innerWidth;
       const ch = window.innerHeight;
       const cx = cw / 2;
       const cy = ch / 2;
-      const ring = Math.min(cw, ch) * 0.24;
-
-      groupAnchors = {};
-      groups.forEach((g, i) => {
-        const angle = (i / groups.length) * Math.PI * 2 - Math.PI / 2;
-        groupAnchors[g] = {
-          x: cx + Math.cos(angle) * ring,
-          y: cy + Math.sin(angle) * ring,
-        };
-      });
-
-
       const isMobile = window.innerWidth < 640;
       const spread = Math.min(cw, ch) * (isMobile ? 0.14 : 0.18);
       const baseR = isMobile ? 20 : 40;
-      
-      const bubbles: Bubble[] = palette.map((c, idx) => {
-      const a = groupAnchors[c.group];
 
-      return {
-        id: `${c.group}-${c.hex}-${idx}`,
+      const bubbles: Bubble[] = palette.map((c) => ({
+        id: c.hex,
         hex: c.hex,
-        group: c.group,
         isWhite: c.isWhite,
         pulse: 0,
         x: cx + (Math.random() - 0.5) * spread * 2,
@@ -140,8 +121,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         vy: (Math.random() - 0.5) * 0.35,
         r: baseR,
         rTarget: baseR,
-      };
-    });
+      }));
 
       bubblesRef.current = bubbles;
     };
@@ -151,7 +131,6 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       const isMobile = window.innerWidth < 640;
       const padding = isMobile ? 6 : 2;
       const strength = 0.35;
-      const sameGroupFactor = 0.8;
 
       const bubbles = bubblesRef.current;
 
@@ -173,14 +152,13 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
             const overlap = minDist - dist;
 
-            const factor = a.group === b.group ? sameGroupFactor : 1;
-            const push = overlap * 0.5 * strength * factor;
+            const push = overlap * 0.5 * strength;
             a.x -= nx * push;
             a.y -= ny * push;
             b.x += nx * push;
             b.y += ny * push;
 
-            const vpush = overlap * 0.0008 * strength * factor;
+            const vpush = overlap * 0.0008 * strength;
             a.vx -= nx * vpush;
             a.vy -= ny * vpush;
             b.vx += nx * vpush;
@@ -261,9 +239,6 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       const isMobile = cw < 640;
       const base = isMobile ? 26 : 40;   // ← 通常時
       const hover = isMobile ? 36 : 55;  // ← hover時
-      const selectedGroup = selectedId
-        ? bubbles.find((bb) => bb.id === selectedId)?.group ?? null
-        : null;
 
       // hover/selected のターゲット半径（ikea-bubblesと同じ設計）
       for (const b of bubbles) {
@@ -284,10 +259,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
         const dist = Math.hypot(dx, dy);
 
         b.rTarget = dist < b.r ? hover : base;
-          if (selectedGroup && b.group === selectedGroup) {
-            b.rTarget += 4;
-          }
-        }
+      }
       applyRepulsion(cw, ch);
 
       // background: 白（枠なし）
