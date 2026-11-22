@@ -29,7 +29,7 @@ export default function Page() {
       <fieldset className="absolute left-3 top-2 flex flex-row sm:flex-col">
         <legend className="sr-only">Background colour</legend>
         {backgroundColours.map((colour) => (
-          <label key={colour} title={colour} className="flex h-12 w-14 cursor-pointer items-center gap-2">
+          <label key={colour} title={colour} className="flex h-12 w-14 cursor-pointer flex-col items-center gap-1.5 sm:flex-row sm:gap-2">
             <input
               type="radio"
               name="background-colour"
