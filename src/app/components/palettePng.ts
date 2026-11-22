@@ -45,11 +45,25 @@ export function createPalettePng(fills: readonly string[]): File {
   return new File([bytes], "colour-bubbles.png", { type: "image/png" });
 }
 
+let lastDownloadStamp = "";
+let downloadCount = 0;
+
+function downloadFilename(now: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const date = `${pad(now.getDate())}${pad(now.getMonth() + 1)}${now.getFullYear()}`;
+  const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const stamp = `${date}_${time}`;
+  downloadCount = stamp === lastDownloadStamp ? downloadCount + 1 : 1;
+  lastDownloadStamp = stamp;
+  const suffix = downloadCount > 1 ? `_${downloadCount}` : "";
+  return `colour-bubbles_${stamp}${suffix}.png`;
+}
+
 export function downloadPalettePng(file: File) {
   const url = URL.createObjectURL(file);
   const link = document.createElement("a");
   link.href = url;
-  link.download = file.name;
+  link.download = downloadFilename(new Date());
   document.body.append(link);
   try {
     link.click();
