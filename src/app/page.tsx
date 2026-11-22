@@ -12,6 +12,11 @@ export default function Page() {
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [basicColour, setBasicColour] = useState<string | null>(null);
+  const selectBubble = useCallback((colour: string | null) => {
+    setBasicColour(null);
+    setSelected(colour);
+  }, []);
   const [dragged, setDragged] = useState<ColourDrag | null>(null);
   const [fills, setFills] = useState(() => areas.map(() => "#FFFFFF"));
   const paint = useCallback((index: number, colour: string) => {
@@ -24,7 +29,7 @@ export default function Page() {
       style={{ backgroundColor: background }}
       className="relative w-screen h-screen text-foreground transition-colors duration-300"
     >
-      <PaletteBubblesCanvas colors={COLORS} playgroundOpen={open} onSelect={setSelected} onDragColour={setDragged} onPaint={paint} />
+      <PaletteBubblesCanvas colors={COLORS} playgroundOpen={open} basicColour={basicColour} onSelect={selectBubble} onDragColour={setDragged} onPaint={paint} />
 
       <fieldset className="absolute left-3 top-2 flex flex-row sm:flex-col">
         <legend className="sr-only">Background colour</legend>
@@ -48,7 +53,19 @@ export default function Page() {
         ))}
       </fieldset>
 
-      <ColourPlayground open={open} onToggle={() => setOpen(!open)} selected={selected} dragged={dragged} fills={fills} onPaint={paint} />
+      <ColourPlayground
+        open={open}
+        onToggle={() => setOpen(!open)}
+        selected={basicColour ?? selected}
+        basicColour={basicColour}
+        onSelectBasic={(colour) => {
+          setSelected(null);
+          setBasicColour(colour);
+        }}
+        dragged={dragged}
+        fills={fills}
+        onPaint={paint}
+      />
 
       <footer className="pointer-events-none absolute bottom-4 left-3 right-32 text-xs opacity-40 transition-colors duration-300 sm:bottom-6 sm:inset-x-0 sm:text-center">
         © {new Date().getFullYear()} Sakura Wallace. All rights reserved.

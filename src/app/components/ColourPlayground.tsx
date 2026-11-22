@@ -6,16 +6,37 @@ type Props = {
   open: boolean;
   onToggle: () => void;
   selected: string | null;
+  basicColour: string | null;
+  onSelectBasic: (colour: string) => void;
   dragged: ColourDrag | null;
   fills: string[];
   onPaint: (index: number, colour: string) => void;
 };
 
+const basicColours = ["#FFFFFF", "#FAFAFA", "#ECECEC", "#CFCFCF", "#3D3D3D", "#171717"];
+
 export const areas = ["Card background", "Circle 1", "Circle 2", "Circle 3", "Circle 4", "Circle 5"];
 
-export default function ColourPlayground({ open, onToggle, selected, dragged, fills, onPaint }: Props) {
+export default function ColourPlayground({ open, onToggle, selected, basicColour, onSelectBasic, dragged, fills, onPaint }: Props) {
   return (
     <aside className="absolute bottom-3 right-3 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
+      {open && (
+        <div role="group" aria-label="Basic paint colours" className="flex items-center gap-1 sm:gap-2">
+          {basicColours.map((colour) => (
+            <button
+              key={colour}
+              type="button"
+              data-paint-colour={colour}
+              aria-label={`Select paint colour ${colour}`}
+              aria-pressed={basicColour === colour}
+              title={colour}
+              onClick={() => onSelectBasic(colour)}
+              style={{ backgroundColor: colour }}
+              className="size-11 touch-none cursor-grab rounded-full shadow-sm aria-pressed:outline-2 aria-pressed:outline-offset-2 active:cursor-grabbing sm:size-12"
+            />
+          ))}
+        </div>
+      )}
       <div
         id="colour-playground"
         hidden={!open}
