@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, FileDown, Share } from "lucide-react";
+import { FileDown, Share } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPalettePng, downloadPalettePng } from "./palettePng";
 
@@ -136,15 +136,6 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
       <div className="flex items-center gap-1">
         {open && (
           <>
-            <button
-              type="button"
-              aria-label="Back to colour bubbles"
-              title="Back to colour bubbles"
-              className="grid size-11 place-items-center sm:hidden"
-              onClick={() => window.scrollTo({ top: 0, behavior: scrollBehaviour() })}
-            >
-              <ArrowUp size={24} aria-hidden="true" />
-            </button>
             {canSharePng && (
               <button type="button" disabled={sharing} onClick={() => exportPalette("share")} aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
                 <Share size={24} aria-hidden="true" />
