@@ -26,7 +26,7 @@ export default function Page() {
     >
       <PaletteBubblesCanvas colors={COLORS} playgroundOpen={open} onSelect={setSelected} onDragColour={setDragged} onPaint={paint} />
 
-      <fieldset className="absolute left-3 top-2 flex flex-col">
+      <fieldset className="absolute left-3 top-2 flex flex-row sm:flex-col">
         <legend className="sr-only">Background colour</legend>
         {backgroundColours.map((colour) => (
           <label key={colour} title={colour} className="flex h-12 w-14 cursor-pointer items-center gap-2">
