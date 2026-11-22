@@ -50,7 +50,14 @@ function roundRect(
   ctx.closePath();
 }
 
-export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[] }) {
+type CanvasProps = {
+  colors: PaletteColor[];
+  playgroundOpen: boolean;
+  onSelect: (colour: string | null) => void;
+  onDragColour: (colour: string | null) => void;
+};
+
+export default function PaletteBubblesCanvas({ colors, playgroundOpen, onSelect, onDragColour }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // ikea-bubblesと同じ：stateで持たずrefで持つ（effect再実行を避ける）
@@ -321,6 +328,39 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       mouseRef.current.y = e.clientY;
     };
 
+    let dragSource: string | null = null;
+
+    const onPointerDown = (event: PointerEvent) => {
+      dragSource = pickBubbleIdAt(event.clientX, event.clientY);
+    };
+
+    const onDragStart = (event: DragEvent) => {
+      if (!dragSource || !event.dataTransfer) {
+        event.preventDefault();
+        return;
+      }
+
+      const swatch = document.createElement("canvas");
+      swatch.width = swatch.height = 30;
+      const brush = swatch.getContext("2d");
+      if (brush) {
+        brush.beginPath();
+        brush.arc(15, 15, 12, 0, 2 * Math.PI);
+        brush.fillStyle = dragSource;
+        brush.fill();
+        brush.stroke();
+        event.dataTransfer.setDragImage(swatch, 15, 15);
+      }
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData("application/x-colour-bubble", dragSource);
+      onDragColour(dragSource);
+    };
+
+    const onDragEnd = () => {
+      dragSource = null;
+      onDragColour(null);
+    };
+
     const onClick = async (e: MouseEvent) => {
       const selectedId = selectedIdRef.current;
 
@@ -347,15 +387,15 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
       // bubble選択トグル
       const id = pickBubbleIdAt(e.clientX, e.clientY);
-      if (!id) {
-        selectedIdRef.current = null; // 何もないところクリックで解除
-        return;
-      }
-      selectedIdRef.current = selectedIdRef.current === id ? null : id;
+      selectedIdRef.current = selectedId === id ? null : id;
+      onSelect(selectedIdRef.current);
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") selectedIdRef.current = null;
+      if (e.key === "Escape") {
+        selectedIdRef.current = null;
+        onSelect(null);
+      }
     };
 
     const onResize = () => {
@@ -368,6 +408,9 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
 
     window.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("click", onClick);
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("dragstart", onDragStart);
+    canvas.addEventListener("dragend", onDragEnd);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", onResize);
 
@@ -377,10 +420,13 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
       cancelAnimationFrame(rafId);
       window.removeEventListener("mousemove", onMouseMove);
       canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("dragstart", onDragStart);
+      canvas.removeEventListener("dragend", onDragEnd);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
     };
-  }, [palette]);
+  }, [palette, onSelect, onDragColour]);
 
-  return <canvas ref={canvasRef} className="block h-screen w-screen" />;
+  return <canvas draggable={playgroundOpen} ref={canvasRef} className="block h-screen w-screen" />;
 }
