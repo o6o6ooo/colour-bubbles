@@ -1,5 +1,8 @@
 "use client";
 
+import { FileDown, Share } from "lucide-react";
+import { useState } from "react";
+
 export type ColourDrag = { colour: string; x: number; y: number; area: number | null };
 
 type Props = {
@@ -18,6 +21,17 @@ const basicColours = ["#FFFFFF", "#FAFAFA", "#ECECEC", "#CFCFCF", "#3D3D3D", "#1
 export const areas = ["Card background", "Circle 1", "Circle 2", "Circle 3", "Circle 4", "Circle 5"];
 
 export default function ColourPlayground({ open, onToggle, selected, basicColour, onSelectBasic, dragged, fills, onPaint }: Props) {
+  const [canSharePng, setCanSharePng] = useState(false);
+
+  function togglePlayground() {
+    if (!open) {
+      setCanSharePng(navigator.canShare?.({
+        files: [new File([], "palette.png", { type: "image/png" })],
+      }) ?? false);
+    }
+    onToggle();
+  }
+
   return (
     <aside className="absolute bottom-3 right-3 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
       {open && (
@@ -72,15 +86,29 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
           style={{ left: dragged.x + 10, top: dragged.y + 10, backgroundColor: dragged.colour }} />
       )}
 
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls="colour-playground"
-        className="rounded-full border border-black/25 bg-white px-4 py-2 text-sm font-medium text-[#0E1116] shadow-sm"
-        onClick={onToggle}
-      >
-        Playground
-      </button>
+      <div className="flex items-center gap-1">
+        {open && (
+          <>
+            {canSharePng && (
+              <button type="button" disabled aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
+                <Share size={24} aria-hidden="true" />
+              </button>
+            )}
+            <button type="button" disabled aria-label="Save PNG" title="Save PNG" className={`size-11 place-items-center ${canSharePng ? "hidden sm:grid" : "grid"}`}>
+              <FileDown size={24} aria-hidden="true" />
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="colour-playground"
+          className="rounded-full border border-black/25 bg-white px-4 py-2 text-sm font-medium text-[#0E1116] shadow-sm aria-expanded:ml-2.5"
+          onClick={togglePlayground}
+        >
+          Playground
+        </button>
+      </div>
     </aside>
   );
 }
