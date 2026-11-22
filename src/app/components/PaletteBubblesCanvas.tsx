@@ -342,7 +342,7 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
     const onPointerDown = (event: PointerEvent) => {
       if (!event.isPrimary || event.button !== 0) return;
       moved = false;
-      if (!canvas.hasAttribute("data-paint-enabled")) return;
+      if (event.pointerType !== "mouse" || !canvas.hasAttribute("data-paint-enabled")) return;
       const source = event.target instanceof HTMLElement
         ? event.target.closest<HTMLElement>("[data-paint-colour]") ?? event.target
         : null;
@@ -468,5 +468,5 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
     };
   }, [palette, onSelect, onDragColour, onPaint]);
 
-  return <canvas data-paint-enabled={playgroundOpen ? "" : undefined} style={{ touchAction: playgroundOpen ? "none" : undefined }} ref={canvasRef} className="block h-screen w-screen" />;
+  return <canvas data-paint-enabled={playgroundOpen ? "" : undefined} ref={canvasRef} className="block h-screen w-screen" />;
 }

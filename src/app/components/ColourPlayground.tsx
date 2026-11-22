@@ -78,7 +78,7 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
               title={colour}
               onClick={() => onSelectBasic(colour)}
               style={{ backgroundColor: colour }}
-              className="relative aspect-square touch-none cursor-grab rounded-full border border-current/35 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 active:cursor-grabbing"
+              className="relative aspect-square cursor-grab rounded-full border border-current/35 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 active:cursor-grabbing"
             >
               {basicColour === colour && (
                 <span aria-hidden="true" className="pointer-events-none absolute -top-3 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-current" />
