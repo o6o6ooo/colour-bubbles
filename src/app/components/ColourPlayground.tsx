@@ -77,24 +77,20 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
     }
   }
 
-  const toggleButton = (
-    <button
-      type="button"
-      aria-expanded={open}
-      aria-controls="colour-playground"
-      className="inline-flex items-center gap-1.5 px-4 py-2 text-lg font-semibold text-foreground sm:aria-expanded:ml-2.5"
-      onClick={togglePlayground}
-    >
-      <ChevronDown size={22} strokeWidth={2.5} aria-hidden="true" className={open ? "rotate-180 sm:rotate-0" : "sm:rotate-180"} />
-      Playground
-    </button>
-  );
-
   return (
-    <aside ref={sectionRef} className="flex flex-col items-center gap-2 px-3 py-4 sm:absolute sm:bottom-5 sm:right-5 sm:items-end sm:p-0">
-      <div className="self-center sm:hidden">{toggleButton}</div>
+    <aside ref={sectionRef} className="flex flex-col items-center gap-2 px-3 py-4 sm:absolute sm:right-5 sm:top-5 sm:grid sm:grid-cols-[1fr_auto] sm:gap-4 sm:p-0">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="colour-playground"
+        className="inline-flex items-center gap-1.5 px-4 py-2 text-lg font-semibold text-foreground sm:col-span-full sm:justify-self-end"
+        onClick={togglePlayground}
+      >
+        <ChevronDown size={22} strokeWidth={2.5} aria-hidden="true" className={open ? "rotate-180" : undefined} />
+        Playground
+      </button>
       {open && (
-        <div role="group" aria-label="Basic paint colours" className="grid w-full max-w-[19rem] grid-cols-6 gap-2 pt-3 sm:max-w-[21.75rem] sm:gap-3">
+        <div role="group" aria-label="Basic paint colours" className="grid w-full max-w-[19rem] grid-cols-6 gap-2 pt-3 sm:col-start-1 sm:row-start-3 sm:max-w-[21.75rem] sm:gap-3 sm:pt-0">
           {basicColours.map((colour) => (
             <button
               key={colour}
@@ -119,7 +115,7 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
         hidden={!open}
         role="group"
         aria-label="Colour playground"
-        className="relative aspect-[3/1] w-[min(42rem,calc(100vw_-_1.5rem))]"
+        className="relative aspect-[3/1] w-[min(42rem,calc(100vw_-_1.5rem))] sm:col-span-full sm:row-start-2 sm:w-[min(42rem,calc(100vw_-_6rem))]"
       >
         {areas.map((area, index) => (
           <button
@@ -145,25 +141,22 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
           style={{ left: dragged.x + 10, top: dragged.y + 10, backgroundColor: dragged.colour }} />
       )}
 
-      {open && exportError && <p role="alert" className="rounded bg-background px-2 py-1 text-sm">{exportError}</p>}
-      <div className={`items-center gap-1 sm:flex ${open ? "flex" : "hidden"}`}>
-        {open && (
-          <>
-            <button type="button" onClick={onReset} aria-label="Reset all playground colours to white" title="Reset all playground colours to white" className="grid size-11 place-items-center">
-              <Trash2 size={24} aria-hidden="true" />
+      {open && exportError && <p role="alert" className="sm:col-span-full sm:row-start-4 rounded bg-background px-2 py-1 text-sm">{exportError}</p>}
+      {open && (
+        <div className="flex items-center gap-1 sm:col-start-2 sm:row-start-3">
+          <button type="button" onClick={onReset} aria-label="Reset all playground colours to white" title="Reset all playground colours to white" className="grid size-11 place-items-center">
+            <Trash2 size={24} aria-hidden="true" />
+          </button>
+          {canSharePng && (
+            <button type="button" disabled={sharing} onClick={() => exportPalette("share")} aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
+              <Share size={24} aria-hidden="true" />
             </button>
-            {canSharePng && (
-              <button type="button" disabled={sharing} onClick={() => exportPalette("share")} aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
-                <Share size={24} aria-hidden="true" />
-              </button>
-            )}
-            <button type="button" onClick={() => exportPalette("download")} aria-label="Save PNG" title="Save PNG" className={`size-11 place-items-center ${canSharePng ? "hidden sm:grid" : "grid"}`}>
-              <FileDown size={24} aria-hidden="true" />
-            </button>
-          </>
-        )}
-        <div className="hidden sm:block">{toggleButton}</div>
-      </div>
+          )}
+          <button type="button" onClick={() => exportPalette("download")} aria-label="Save PNG" title="Save PNG" className={`size-11 place-items-center ${canSharePng ? "hidden sm:grid" : "grid"}`}>
+            <FileDown size={24} aria-hidden="true" />
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
