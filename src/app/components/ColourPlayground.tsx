@@ -1,6 +1,6 @@
 "use client";
 
-import { FileDown, Share } from "lucide-react";
+import { ChevronDown, FileDown, Share } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPalettePng, downloadPalettePng } from "./palettePng";
 
@@ -76,10 +76,22 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
     }
   }
 
+  const toggleButton = (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-controls="colour-playground"
+      className="inline-flex items-center gap-1.5 rounded-full border border-black/25 bg-white px-4 py-2 text-sm font-medium text-[#0E1116] shadow-sm sm:aria-expanded:ml-2.5"
+      onClick={togglePlayground}
+    >
+      <ChevronDown size={16} aria-hidden="true" className={open ? "rotate-180 sm:rotate-0" : "sm:rotate-180"} />
+      Playground
+    </button>
+  );
+
   return (
-    <aside ref={sectionRef} className={`flex flex-col items-end gap-2 sm:absolute sm:bottom-5 sm:right-5 sm:p-0 ${open
-      ? "px-3 py-4"
-      : "absolute bottom-3 right-3"}`}>
+    <aside ref={sectionRef} className="flex flex-col items-end gap-2 px-3 py-4 sm:absolute sm:bottom-5 sm:right-5 sm:p-0">
+      <div className="self-center sm:hidden">{toggleButton}</div>
       {open && (
         <div role="group" aria-label="Basic paint colours" className="grid w-full max-w-[19rem] grid-cols-6 gap-2 pt-3 sm:max-w-[21.75rem] sm:gap-3">
           {basicColours.map((colour) => (
@@ -133,7 +145,7 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
       )}
 
       {open && exportError && <p role="alert" className="rounded bg-background px-2 py-1 text-sm">{exportError}</p>}
-      <div className="flex items-center gap-1">
+      <div className={`items-center gap-1 sm:flex ${open ? "flex" : "hidden"}`}>
         {open && (
           <>
             {canSharePng && (
@@ -146,15 +158,7 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
             </button>
           </>
         )}
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls="colour-playground"
-          className="rounded-full border border-black/25 bg-white px-4 py-2 text-sm font-medium text-[#0E1116] shadow-sm aria-expanded:ml-2.5"
-          onClick={togglePlayground}
-        >
-          Playground
-        </button>
+        <div className="hidden sm:block">{toggleButton}</div>
       </div>
     </aside>
   );

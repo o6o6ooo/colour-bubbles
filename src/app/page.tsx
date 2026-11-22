@@ -67,9 +67,7 @@ export default function Page() {
         onPaint={paint}
       />
 
-      <footer className={`pointer-events-none text-xs opacity-40 transition-colors duration-300 sm:absolute sm:bottom-6 sm:inset-x-0 sm:p-0 sm:text-center ${open
-        ? "px-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
-        : "absolute bottom-4 left-3 right-32"}`}>
+      <footer className="pointer-events-none px-3 pb-[max(1rem,env(safe-area-inset-bottom))] text-center text-xs opacity-40 transition-colors duration-300 sm:absolute sm:inset-x-0 sm:bottom-6 sm:p-0">
         © {new Date().getFullYear()} Sakura Wallace. All rights reserved.
       </footer>
     </main>
