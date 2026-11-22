@@ -1,7 +1,7 @@
 // Render at twice the layout size so the outlines and HEX labels stay crisp.
 export function createPalettePng(fills: readonly string[]): File {
   const width = 744;
-  const height = 408;
+  const height = 294;
   const canvas = document.createElement("canvas");
   canvas.width = width * 2;
   canvas.height = height * 2;
@@ -17,26 +17,29 @@ export function createPalettePng(fills: readonly string[]): File {
   ctx.fill();
   ctx.stroke();
 
-  fills.slice(1).forEach((colour, index) => {
-    ctx.beginPath();
-    ctx.arc(width * (0.16 + index * 0.17), 128, width * 0.1, 0, Math.PI * 2);
-    ctx.fillStyle = colour;
-    ctx.fill();
-    ctx.stroke();
-  });
-
   const [red, green, blue] = [1, 3, 5].map((offset) => {
     const channel = parseInt(fills[0].slice(offset, offset + 2), 16) / 255;
     return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
   });
   const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-  ctx.fillStyle = luminance > 0.179 ? "#000000" : "#FFFFFF";
+  const textColour = luminance > 0.179 ? "#000000" : "#FFFFFF";
+  ctx.fillStyle = textColour;
   ctx.font = "600 17px system-ui, sans-serif";
+  ctx.letterSpacing = "0.5px";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fills.forEach((colour, index) => {
-    const label = index === 0 ? "Background" : `Circle ${index}`;
-    ctx.fillText(`${label}: ${colour.slice(1).toUpperCase()}`, width / 2, 255 + index * 21);
+  const labelInset = 40;
+  ctx.fillText(fills[0].slice(1).toUpperCase(), width / 2, labelInset);
+
+  fills.slice(1).forEach((colour, index) => {
+    const centreX = width * (0.16 + index * 0.17);
+    ctx.beginPath();
+    ctx.arc(centreX, height / 2, width * 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = colour;
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = textColour;
+    ctx.fillText(colour.slice(1).toUpperCase(), centreX, height - labelInset);
   });
 
   // Keep the share call in the original click gesture, including on Safari.
