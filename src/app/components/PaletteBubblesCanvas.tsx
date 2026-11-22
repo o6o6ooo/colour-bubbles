@@ -245,11 +245,10 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
         if (b.pulse < 0.001) b.pulse = 0;
 
         if (selectedId && b.id === selectedId) {
-            const isMobile = window.innerWidth < 640;
-            const base = isMobile ? 82 : 92;
-            const squish = 10 * b.pulse; // ← 強さ調整（8〜12おすすめ）
-            b.rTarget = base - squish;   // ← ここが“ぷにっ”
-            continue;
+          const selectedRadius = isMobile ? 48 : 92;
+          const squish = (isMobile ? 4 : 10) * b.pulse;
+          b.rTarget = selectedRadius - squish;
+          continue;
         }
 
         const dx = mx - b.x;
