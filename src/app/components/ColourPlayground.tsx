@@ -81,10 +81,10 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
       type="button"
       aria-expanded={open}
       aria-controls="colour-playground"
-      className="inline-flex items-center gap-1.5 rounded-full border border-black/25 bg-white px-4 py-2 text-sm font-medium text-[#0E1116] shadow-sm sm:aria-expanded:ml-2.5"
+      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-foreground sm:aria-expanded:ml-2.5"
       onClick={togglePlayground}
     >
-      <ChevronDown size={16} aria-hidden="true" className={open ? "rotate-180 sm:rotate-0" : "sm:rotate-180"} />
+      <ChevronDown size={16} strokeWidth={2.5} aria-hidden="true" className={open ? "rotate-180 sm:rotate-0" : "sm:rotate-180"} />
       Playground
     </button>
   );
