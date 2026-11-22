@@ -2,6 +2,7 @@
 
 import { FileDown, Share } from "lucide-react";
 import { useState } from "react";
+import { createPalettePng, downloadPalettePng } from "./palettePng";
 
 export type ColourDrag = { colour: string; x: number; y: number; area: number | null };
 
@@ -22,14 +23,45 @@ export const areas = ["Card background", "Circle 1", "Circle 2", "Circle 3", "Ci
 
 export default function ColourPlayground({ open, onToggle, selected, basicColour, onSelectBasic, dragged, fills, onPaint }: Props) {
   const [canSharePng, setCanSharePng] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   function togglePlayground() {
+    setExportError("");
     if (!open) {
       setCanSharePng(navigator.canShare?.({
         files: [new File([], "palette.png", { type: "image/png" })],
       }) ?? false);
     }
     onToggle();
+  }
+
+  async function exportPalette(action: "share" | "download") {
+    setExportError("");
+    let file: File;
+    try {
+      file = createPalettePng(fills);
+      if (action === "download" || !navigator.canShare?.({ files: [file] })) {
+        if (action === "share") setCanSharePng(false);
+        downloadPalettePng(file);
+        return;
+      }
+    } catch {
+      setExportError("Could not export the PNG. Please try again.");
+      return;
+    }
+
+    setSharing(true);
+    try {
+      await navigator.share({ files: [file] });
+    } catch (error) {
+      if (!(error instanceof Error && error.name === "AbortError")) {
+        setExportError("Sharing is unavailable. Use Save PNG to download the image.");
+        setCanSharePng(false);
+      }
+    } finally {
+      setSharing(false);
+    }
   }
 
   return (
@@ -86,15 +118,16 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
           style={{ left: dragged.x + 10, top: dragged.y + 10, backgroundColor: dragged.colour }} />
       )}
 
+      {open && exportError && <p role="alert" className="rounded bg-background px-2 py-1 text-sm">{exportError}</p>}
       <div className="flex items-center gap-1">
         {open && (
           <>
             {canSharePng && (
-              <button type="button" disabled aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
+              <button type="button" disabled={sharing} onClick={() => exportPalette("share")} aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
                 <Share size={24} aria-hidden="true" />
               </button>
             )}
-            <button type="button" disabled aria-label="Save PNG" title="Save PNG" className={`size-11 place-items-center ${canSharePng ? "hidden sm:grid" : "grid"}`}>
+            <button type="button" onClick={() => exportPalette("download")} aria-label="Save PNG" title="Save PNG" className={`size-11 place-items-center ${canSharePng ? "hidden sm:grid" : "grid"}`}>
               <FileDown size={24} aria-hidden="true" />
             </button>
           </>
