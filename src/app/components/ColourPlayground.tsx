@@ -21,7 +21,7 @@ export default function ColourPlayground({ open, onToggle, selected, dragged, fi
         hidden={!open}
         role="group"
         aria-label="Colour playground"
-        className="relative aspect-[3/1] w-[min(21rem,calc(100vw_-_1.5rem))]"
+        className="relative aspect-[3/1] w-[min(42rem,calc(100vw_-_1.5rem))]"
       >
         {areas.map((area, index) => (
           <button
