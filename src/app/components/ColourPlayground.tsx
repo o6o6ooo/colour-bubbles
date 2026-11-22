@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, FileDown, Share } from "lucide-react";
+import { ChevronDown, FileDown, Share, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPalettePng, downloadPalettePng } from "./palettePng";
 
@@ -15,6 +15,7 @@ type Props = {
   dragged: ColourDrag | null;
   fills: string[];
   onPaint: (index: number, colour: string) => void;
+  onReset: () => void;
 };
 
 const basicColours = ["#FFFFFF", "#FAFAFA", "#ECECEC", "#CFCFCF", "#3D3D3D", "#171717"];
@@ -25,7 +26,7 @@ function scrollBehaviour(): ScrollBehavior {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 }
 
-export default function ColourPlayground({ open, onToggle, selected, basicColour, onSelectBasic, dragged, fills, onPaint }: Props) {
+export default function ColourPlayground({ open, onToggle, selected, basicColour, onSelectBasic, dragged, fills, onPaint, onReset }: Props) {
   const [canSharePng, setCanSharePng] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -148,6 +149,9 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
       <div className={`items-center gap-1 sm:flex ${open ? "flex" : "hidden"}`}>
         {open && (
           <>
+            <button type="button" onClick={onReset} aria-label="Reset all playground colours to white" title="Reset all playground colours to white" className="grid size-11 place-items-center">
+              <Trash2 size={24} aria-hidden="true" />
+            </button>
             {canSharePng && (
               <button type="button" disabled={sharing} onClick={() => exportPalette("share")} aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
                 <Share size={24} aria-hidden="true" />

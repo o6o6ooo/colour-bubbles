@@ -6,6 +6,7 @@ import ColourPlayground, { areas, type ColourDrag } from "./components/ColourPla
 import { COLORS } from "@/data/palette";
 
 const backgroundColours = ["#FFFFFF", "#F6F6F6", "#F5F5F5", "#F2F2F2", "#0E1116"];
+const blankFills = areas.map(() => "#FFFFFF");
 
 export default function Page() {
   const [background, setBackground] = useState(backgroundColours[0]);
@@ -18,7 +19,7 @@ export default function Page() {
     setSelected(colour);
   }, []);
   const [dragged, setDragged] = useState<ColourDrag | null>(null);
-  const [fills, setFills] = useState(() => areas.map(() => "#FFFFFF"));
+  const [fills, setFills] = useState<string[]>(blankFills);
   const paint = useCallback((index: number, colour: string) => {
     setFills((current) => current.map((fill, i) => i === index ? colour : fill));
   }, []);
@@ -65,6 +66,7 @@ export default function Page() {
         dragged={dragged}
         fills={fills}
         onPaint={paint}
+        onReset={() => setFills(blankFills)}
       />
 
       <footer className="pointer-events-none px-3 pb-[max(1rem,env(safe-area-inset-bottom))] text-center text-xs opacity-40 transition-colors duration-300 sm:absolute sm:inset-x-0 sm:bottom-6 sm:p-0">
