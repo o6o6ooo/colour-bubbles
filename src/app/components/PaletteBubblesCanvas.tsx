@@ -380,7 +380,7 @@ export default function PaletteBubblesCanvas({ colors }: { colors: PaletteColor[
           if (b) {
             b.pulse = 1; // ✅ クリックでpulse発生
             try {
-              await navigator.clipboard.writeText(b.hex);
+              await navigator.clipboard.writeText(b.hex.slice(1));
             } catch {
               // 失敗しても黙っておく（Safari権限など）
             }
