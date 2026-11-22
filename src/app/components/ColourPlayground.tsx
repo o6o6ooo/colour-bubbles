@@ -91,7 +91,7 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
   );
 
   return (
-    <aside ref={sectionRef} className="flex flex-col items-end gap-2 px-3 py-4 sm:absolute sm:bottom-5 sm:right-5 sm:p-0">
+    <aside ref={sectionRef} className="flex flex-col items-center gap-2 px-3 py-4 sm:absolute sm:bottom-5 sm:right-5 sm:items-end sm:p-0">
       <div className="self-center sm:hidden">{toggleButton}</div>
       {open && (
         <div role="group" aria-label="Basic paint colours" className="grid w-full max-w-[19rem] grid-cols-6 gap-2 pt-3 sm:max-w-[21.75rem] sm:gap-3">
