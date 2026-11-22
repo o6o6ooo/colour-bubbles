@@ -1,14 +1,12 @@
-// Render at twice the layout size so the outlines and HEX labels stay crisp.
 export function createPalettePng(fills: readonly string[]): File {
   const width = 744;
   const height = 294;
   const canvas = document.createElement("canvas");
-  canvas.width = width * 2;
-  canvas.height = height * 2;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is unavailable");
 
-  ctx.scale(2, 2);
   ctx.lineWidth = 2;
   ctx.strokeStyle = "#000000";
   ctx.beginPath();
