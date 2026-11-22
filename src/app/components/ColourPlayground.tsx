@@ -1,7 +1,7 @@
 "use client";
 
-import { FileDown, Share } from "lucide-react";
-import { useState } from "react";
+import { ArrowUp, FileDown, Share } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { createPalettePng, downloadPalettePng } from "./palettePng";
 
 export type ColourDrag = { colour: string; x: number; y: number; area: number | null };
@@ -21,10 +21,22 @@ const basicColours = ["#FFFFFF", "#FAFAFA", "#ECECEC", "#CFCFCF", "#3D3D3D", "#1
 
 export const areas = ["Card background", "Circle 1", "Circle 2", "Circle 3", "Circle 4", "Circle 5"];
 
+function scrollBehaviour(): ScrollBehavior {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
 export default function ColourPlayground({ open, onToggle, selected, basicColour, onSelectBasic, dragged, fills, onPaint }: Props) {
   const [canSharePng, setCanSharePng] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [exportError, setExportError] = useState("");
+
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (open && window.innerWidth < 640) {
+      sectionRef.current?.scrollIntoView({ block: "end", behavior: scrollBehaviour() });
+    }
+  }, [open]);
 
   function togglePlayground() {
     setExportError("");
@@ -65,7 +77,9 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
   }
 
   return (
-    <aside className="absolute bottom-3 right-3 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
+    <aside ref={sectionRef} className={`flex flex-col items-end gap-2 sm:absolute sm:bottom-5 sm:right-5 sm:p-0 ${open
+      ? "px-3 py-4"
+      : "absolute bottom-3 right-3"}`}>
       {open && (
         <div role="group" aria-label="Basic paint colours" className="grid w-full max-w-[19rem] grid-cols-6 gap-2 pt-3 sm:max-w-[21.75rem] sm:gap-3">
           {basicColours.map((colour) => (
@@ -122,6 +136,15 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
       <div className="flex items-center gap-1">
         {open && (
           <>
+            <button
+              type="button"
+              aria-label="Back to colour bubbles"
+              title="Back to colour bubbles"
+              className="grid size-11 place-items-center sm:hidden"
+              onClick={() => window.scrollTo({ top: 0, behavior: scrollBehaviour() })}
+            >
+              <ArrowUp size={24} aria-hidden="true" />
+            </button>
             {canSharePng && (
               <button type="button" disabled={sharing} onClick={() => exportPalette("share")} aria-label="Share palette" title="Share palette" className="grid size-11 place-items-center">
                 <Share size={24} aria-hidden="true" />

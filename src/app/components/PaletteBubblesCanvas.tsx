@@ -89,23 +89,22 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
     if (!ctx) return;
 
     let rafId = 0;
+    let cw = canvas.clientWidth;
+    let ch = canvas.clientHeight;
 
     const setupCanvasSize = () => {
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(window.innerHeight * dpr);
-
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
+      cw = canvas.clientWidth;
+      ch = canvas.clientHeight;
+      canvas.width = Math.floor(cw * dpr);
+      canvas.height = Math.floor(ch * dpr);
 
       // ✅ 物理はCSSピクセル基準で描く（dprはtransformで吸収）
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     const initBubbles = () => {
-      const cw = window.innerWidth;
-      const ch = window.innerHeight;
       const cx = cw / 2;
       const cy = ch / 2;
       const isMobile = window.innerWidth < 640;
@@ -230,9 +229,6 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
     };
 
     const tick = () => {
-      const cw = window.innerWidth;
-      const ch = window.innerHeight;
-
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
 
@@ -331,9 +327,13 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
       rafId = requestAnimationFrame(tick);
     };
 
+    const canvasPoint = (event: MouseEvent) => {
+      const bounds = canvas.getBoundingClientRect();
+      return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    };
+
     const onMouseMove = (e: MouseEvent) => {
-      mouseRef.current.x = e.clientX;
-      mouseRef.current.y = e.clientY;
+      mouseRef.current = canvasPoint(e);
     };
 
     let press: { source: HTMLElement; id: number; colour: string; x: number; y: number } | null = null;
@@ -347,7 +347,8 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
         ? event.target.closest<HTMLElement>("[data-paint-colour]") ?? event.target
         : null;
       if (!source) return;
-      const colour = source === canvas ? pickBubbleIdAt(event.clientX, event.clientY) : source.dataset.paintColour;
+      const point = canvasPoint(event);
+      const colour = source === canvas ? pickBubbleIdAt(point.x, point.y) : source.dataset.paintColour;
       if (!colour) return;
       press = { source, id: event.pointerId, colour, x: event.clientX, y: event.clientY };
       source.setPointerCapture(event.pointerId);
@@ -395,6 +396,7 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
 
     const onClick = async (e: MouseEvent) => {
       if (moved) return;
+      const { x, y } = canvasPoint(e);
       const selectedId = selectedIdRef.current;
 
       // 先にCopyピル判定（選択中のみ）
@@ -402,7 +404,7 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
       if (hit && selectedId && hit.bubbleId === selectedId) {
         const r = hit.rect;
         const inside =
-          e.clientX >= r.x && e.clientX <= r.x + r.w && e.clientY >= r.y && e.clientY <= r.y + r.h;
+          x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 
         if (inside) {
           const b = bubblesRef.current.find((bb) => bb.id === selectedId);
@@ -419,7 +421,7 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
       }
 
       // bubble選択トグル
-      const id = pickBubbleIdAt(e.clientX, e.clientY);
+      const id = pickBubbleIdAt(x, y);
       selectedIdRef.current = selectedId === id ? null : id;
       onSelect(selectedIdRef.current);
     };
@@ -433,6 +435,7 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
     };
 
     const onResize = () => {
+      if (canvas.clientWidth === cw && canvas.clientHeight === ch) return;
       setupCanvasSize();
       initBubbles(); // リサイズのときだけ並び直し（ikea-bubblesと同じ）
     };
@@ -468,5 +471,5 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, basicColo
     };
   }, [palette, onSelect, onDragColour, onPaint]);
 
-  return <canvas data-paint-enabled={playgroundOpen ? "" : undefined} ref={canvasRef} className="block h-screen w-screen" />;
+  return <canvas data-paint-enabled={playgroundOpen ? "" : undefined} ref={canvasRef} className="block h-svh w-full sm:h-screen" />;
 }

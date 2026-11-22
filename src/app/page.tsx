@@ -27,7 +27,7 @@ export default function Page() {
     <main
       data-theme={background === "#0E1116" ? "dark" : "light"}
       style={{ backgroundColor: background }}
-      className="relative w-screen h-screen text-foreground transition-colors duration-300"
+      className="relative w-full text-foreground transition-colors duration-300"
     >
       <PaletteBubblesCanvas colors={COLORS} playgroundOpen={open} basicColour={basicColour} onSelect={selectBubble} onDragColour={setDragged} onPaint={paint} />
 
@@ -67,7 +67,9 @@ export default function Page() {
         onPaint={paint}
       />
 
-      <footer className="pointer-events-none absolute bottom-4 left-3 right-32 text-xs opacity-40 transition-colors duration-300 sm:bottom-6 sm:inset-x-0 sm:text-center">
+      <footer className={`pointer-events-none text-xs opacity-40 transition-colors duration-300 sm:absolute sm:bottom-6 sm:inset-x-0 sm:p-0 sm:text-center ${open
+        ? "px-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        : "absolute bottom-4 left-3 right-32"}`}>
         © {new Date().getFullYear()} Sakura Wallace. All rights reserved.
       </footer>
     </main>
