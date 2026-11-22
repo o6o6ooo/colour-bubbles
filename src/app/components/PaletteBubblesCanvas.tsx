@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { PaletteColor } from "@/data/palette";
 
+import type { ColourDrag } from "./ColourPlayground";
+
 type Bubble = {
   id: string;
   hex: string;
@@ -54,10 +56,11 @@ type CanvasProps = {
   colors: PaletteColor[];
   playgroundOpen: boolean;
   onSelect: (colour: string | null) => void;
-  onDragColour: (colour: string | null) => void;
+  onDragColour: (drag: ColourDrag | null) => void;
+  onPaint: (index: number, colour: string) => void;
 };
 
-export default function PaletteBubblesCanvas({ colors, playgroundOpen, onSelect, onDragColour }: CanvasProps) {
+export default function PaletteBubblesCanvas({ colors, playgroundOpen, onSelect, onDragColour, onPaint }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // ikea-bubblesと同じ：stateで持たずrefで持つ（effect再実行を避ける）
@@ -328,40 +331,53 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, onSelect,
       mouseRef.current.y = e.clientY;
     };
 
-    let dragSource: string | null = null;
+    let press: { id: number; colour: string; x: number; y: number } | null = null;
+    let moved = false;
 
     const onPointerDown = (event: PointerEvent) => {
-      dragSource = pickBubbleIdAt(event.clientX, event.clientY);
+      if (!event.isPrimary || event.button !== 0) return;
+      moved = false;
+      if (!canvas.hasAttribute("data-paint-enabled")) return;
+      const colour = pickBubbleIdAt(event.clientX, event.clientY);
+      if (!colour) return;
+      press = { id: event.pointerId, colour, x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
     };
 
-    const onDragStart = (event: DragEvent) => {
-      if (!dragSource || !event.dataTransfer) {
-        event.preventDefault();
-        return;
-      }
-
-      const swatch = document.createElement("canvas");
-      swatch.width = swatch.height = 30;
-      const brush = swatch.getContext("2d");
-      if (brush) {
-        brush.beginPath();
-        brush.arc(15, 15, 12, 0, 2 * Math.PI);
-        brush.fillStyle = dragSource;
-        brush.fill();
-        brush.stroke();
-        event.dataTransfer.setDragImage(swatch, 15, 15);
-      }
-      event.dataTransfer.effectAllowed = "copy";
-      event.dataTransfer.setData("application/x-colour-bubble", dragSource);
-      onDragColour(dragSource);
+    const areaAt = (x: number, y: number) => {
+      const target = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-paint-area]");
+      return target ? Number(target.dataset.paintArea) : null;
     };
 
-    const onDragEnd = () => {
-      dragSource = null;
+    const onPointerMove = (event: PointerEvent) => {
+      if (!press || event.pointerId !== press.id) return;
+      const { clientX: x, clientY: y } = event;
+      if (!moved && Math.hypot(x - press.x, y - press.y) < 5) return;
+      moved = true;
+      onDragColour({ colour: press.colour, x, y, area: areaAt(x, y) });
+    };
+
+    const cancelDrag = () => {
+      if (!press) return;
+      const { id } = press;
+      press = null;
+      if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
       onDragColour(null);
     };
 
+    const onPointerUp = (event: PointerEvent) => {
+      if (!press || event.pointerId !== press.id) return;
+      const area = areaAt(event.clientX, event.clientY);
+      if (moved && area !== null) onPaint(area, press.colour);
+      cancelDrag();
+    };
+
+    const onCaptureLost = (event: PointerEvent) => {
+      if (press?.id === event.pointerId) cancelDrag();
+    };
+
     const onClick = async (e: MouseEvent) => {
+      if (moved) return;
       const selectedId = selectedIdRef.current;
 
       // 先にCopyピル判定（選択中のみ）
@@ -393,6 +409,7 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, onSelect,
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        cancelDrag();
         selectedIdRef.current = null;
         onSelect(null);
       }
@@ -409,8 +426,10 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, onSelect,
     window.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("click", onClick);
     canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("dragstart", onDragStart);
-    canvas.addEventListener("dragend", onDragEnd);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onCaptureLost);
+    canvas.addEventListener("lostpointercapture", onCaptureLost);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", onResize);
 
@@ -421,12 +440,14 @@ export default function PaletteBubblesCanvas({ colors, playgroundOpen, onSelect,
       window.removeEventListener("mousemove", onMouseMove);
       canvas.removeEventListener("click", onClick);
       canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("dragstart", onDragStart);
-      canvas.removeEventListener("dragend", onDragEnd);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onCaptureLost);
+      canvas.removeEventListener("lostpointercapture", onCaptureLost);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
     };
-  }, [palette, onSelect, onDragColour]);
+  }, [palette, onSelect, onDragColour, onPaint]);
 
-  return <canvas draggable={playgroundOpen} ref={canvasRef} className="block h-screen w-screen" />;
+  return <canvas data-paint-enabled={playgroundOpen ? "" : undefined} style={{ touchAction: playgroundOpen ? "none" : undefined }} ref={canvasRef} className="block h-screen w-screen" />;
 }
