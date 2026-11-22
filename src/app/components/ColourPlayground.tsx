@@ -21,7 +21,7 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
   return (
     <aside className="absolute bottom-3 right-3 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
       {open && (
-        <div role="group" aria-label="Basic paint colours" className="flex items-center gap-1 sm:gap-2">
+        <div role="group" aria-label="Basic paint colours" className="grid w-full max-w-[19rem] grid-cols-6 gap-2 pt-3 sm:max-w-[21.75rem] sm:gap-3">
           {basicColours.map((colour) => (
             <button
               key={colour}
@@ -32,8 +32,12 @@ export default function ColourPlayground({ open, onToggle, selected, basicColour
               title={colour}
               onClick={() => onSelectBasic(colour)}
               style={{ backgroundColor: colour }}
-              className="size-11 touch-none cursor-grab rounded-full shadow-sm aria-pressed:outline-2 aria-pressed:outline-offset-2 active:cursor-grabbing sm:size-12"
-            />
+              className="relative aspect-square touch-none cursor-grab rounded-full border border-current/35 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 active:cursor-grabbing"
+            >
+              {basicColour === colour && (
+                <span aria-hidden="true" className="pointer-events-none absolute -top-3 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-current" />
+              )}
+            </button>
           ))}
         </div>
       )}
